@@ -24,7 +24,7 @@ return new class extends Migration
             $table->foreignId('category_id')->constrained('categories','id');
             $table->integer('views')->default(0);
             $table->integer('likes')->default(0);
-            $table->timestamps();
+            $table->timestamps()->default(DB::raw('CURRENT_TIMESTAMP'));
             $table->softDeletes('deleted_at');
         });
     }

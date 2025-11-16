@@ -9,7 +9,7 @@ export default function BlogCard({
     category,
 }) {
     return (
-        <div className="card bg-base-100 w-65 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <div className="card bg-base-100 w-65 shadow-sm hover:shadow-md transition-shadow duration-300 hover:cursor-pointer">
             {/* Image */}
             <figure className="relative">
                 <img

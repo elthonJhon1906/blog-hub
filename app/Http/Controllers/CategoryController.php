@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class CategoryController extends Controller
 {
@@ -12,7 +14,16 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        //
+        $categoires = Category::all();
+        
+    }
+
+    public function navigation() {
+        $categories = Category::with('children')->whereNull('parent_id')->get();
+        // render to inertia component navbar
+        return Inertia::render('Components/NavBar', [
+            'categories' => $categories,
+        ]);
     }
 
     /**
