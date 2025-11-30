@@ -8,44 +8,45 @@ use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class BlogController extends Controller
 {
-    public function index(Request $request) {
-        $query = Blog::with(['tags', 'category', 'user'])
+    public function index(Request $request)
+    {
+        $query = Blog::with(['category', 'user', 'tags'])
+            ->withCount(['likedByUsers as likes_count', 'comments'])
             ->where('status', 'published');
 
-        // Search filter
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('content', 'like', "%{$search}%");
-            });
-        }
-
-        // Category filter
-        if ($request->filled('category')) {
-            $query->whereHas('category', function($q) use ($request) {
+        // Filter by category
+        if ($request->has('category') && $request->category) {
+            $query->whereHas('category', function ($q) use ($request) {
                 $q->where('name', $request->category);
             });
         }
 
-        // Tag filter
-        if ($request->filled('tag')) {
-            $query->whereHas('tags', function($q) use ($request) {
+        // Filter by tag
+        if ($request->has('tag') && $request->tag) {
+            $query->whereHas('tags', function ($q) use ($request) {
                 $q->where('name', $request->tag);
             });
         }
 
+        // Search
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'ilike', "%{$search}%")
+                    ->orWhere('content', 'ilike', "%{$search}%");
+            });
+        }
+
         // Sorting
-        $sortBy = $request->get('sort', 'latest');
-        switch ($sortBy) {
+        $sort = $request->get('sort', 'latest');
+        switch ($sort) {
             case 'popular':
-                $query->orderByDesc('views')->orderByDesc('likes');
+                $query->orderByDesc('views')
+                      ->orderByDesc('likes_count');
                 break;
             case 'oldest':
                 $query->orderBy('created_at', 'asc');
@@ -58,223 +59,215 @@ class BlogController extends Controller
 
         $blogs = $query->paginate(12)->withQueryString();
 
-        $categories = Category::with('children')->whereNull('parent_id')->get();
-        $tags = Tag::orderBy('name')->get();
+        // Get all categories for filter
+        $categories = Category::with('children')
+            ->whereNull('parent_id')
+            ->get();
+
+        // Get all tags for filter
+        $tags = Tag::select('tags.id', 'tags.name')
+            ->join('blog_tags', 'tags.id', '=', 'blog_tags.tag_id')
+            ->distinct()
+            ->orderBy('tags.name')
+            ->get();
 
         return Inertia::render('Blog/Index', [
             'blogs' => $blogs,
+            'categories' => $categories,
+            'tags' => $tags,
             'filters' => [
                 'search' => $request->search,
                 'category' => $request->category,
                 'tag' => $request->tag,
-                'sort' => $sortBy,
+                'sort' => $sort,
             ],
-            'categories' => $categories,
-            'tags' => $tags,
         ]);
     }
 
-    public function create(){
-        $categories = Category::with('children')->whereNull('parent_id')->get();
-        
+    public function create()
+    {
+        $categories = Category::with('children')
+            ->whereNull('parent_id')
+            ->get();
+
         return Inertia::render('Blog/Create', [
             'categories' => $categories,
-            'preservedData' => request('preservedData'),
-        ]);
-    }
-
-    public function edit($id){
-        $blog = Blog::with('tags', 'category')->findOrFail($id);
-        
-        // Check if user is authorized to edit
-        if ($blog->user_id !== Auth::id()) {
-            abort(403, 'Unauthorized action.');
-        }
-
-        $categories = Category::with('children')->whereNull('parent_id')->get();
-
-        return Inertia::render('Blog/Edit', [
-            'blog' => $blog,
-            'categories' => $categories,
-            'preservedData' => request('preservedData'),
-        ]);
-    }
-
-    public function show($id){
-        $blog = Blog::with('tags', 'category', 'user')->findOrFail($id);
-
-        return Inertia::render('Blog/Show', [
-            'blog' => $blog,
         ]);
     }
 
     public function store(Request $request)
     {
-        $payload = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'content' => ['required', 'string'],
-            'category_id' => ['required', 'exists:categories,id'],
-            'status' => ['required', 'in:draft,published'],
-            'thumbnail' => ['nullable'],
-            'tags' => ['array'],
-            'tags.*' => ['string', 'max:50'],
+        $validated = $request->validate([
+            'title' => 'required|string|max:100',
+            'content' => 'required|string',
+            'thumbnail' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'category_id' => 'required|exists:categories,id',
+            'tags' => 'nullable|array',
+            'tags.*' => 'string|max:50',
+            'status' => 'required|in:draft,published',
         ]);
 
-        $blog = new Blog([
-            'title' => $payload['title'],
-            'content' => $payload['content'],
-            'status' => $payload['status'],
-            'category_id' => $payload['category_id'],
-            'views' => 0,
-            'likes' => 0,
-        ]);
-
-        $blog->user_id = Auth::id();
-
+        $thumbnailPath = null;
         if ($request->hasFile('thumbnail')) {
-            $path = $request->file('thumbnail')->store('blogs', 'public');
-            $blog->thumbnail_url = Storage::url($path);
-        } elseif (!empty($payload['thumbnail'])) {
-            $blog->thumbnail_url = $this->storeBase64Image($payload['thumbnail']);
+            $thumbnailPath = $request->file('thumbnail')->store('thumbnails', 'public');
         }
 
-        $blog->save();
+        $blog = Blog::create([
+            'user_id' => Auth::id(),
+            'category_id' => $validated['category_id'],
+            'title' => $validated['title'],
+            'content' => $validated['content'],
+            'thumbnail_url' => $thumbnailPath ? Storage::url($thumbnailPath) : null,
+            'status' => $validated['status'],
+        ]);
 
-        if (!empty($payload['tags'])) {
-            $tagIds = collect($payload['tags'])
-                ->map(fn ($tag) => Tag::firstOrCreate(['name' => trim($tag)])->id)
-                ->all();
-
-            $blog->tags()->sync($tagIds);
+        if (!empty($validated['tags'])) {
+            foreach ($validated['tags'] as $tagName) {
+                $tag = Tag::firstOrCreate(['name' => $tagName]);
+                $blog->tags()->attach($tag->id);
+            }
         }
 
-        return redirect()
-            ->route('blog.create')
-            ->with('success', $payload['status'] === 'draft'
-                ? 'Blog saved as draft.'
-                : 'Blog published successfully.');
+        return redirect()->route('blog.show', $blog->id)
+            ->with('success', 'Blog post created successfully!');
+    }
+
+    public function show($id)
+    {
+        $blog = Blog::with([
+            'category', 
+            'user', 
+            'tags', 
+            'comments' => function ($query) {
+                $query->whereNull('parent_id')
+                    ->with([
+                        'user:id,name',
+                        'replies' => function ($q) {
+                            $q->with('user:id,name')
+                                ->orderBy('created_at', 'asc');
+                        }
+                    ])
+                    ->orderBy('created_at', 'desc');
+            }
+        ])
+        ->withCount(['likedByUsers as likes_count', 'comments'])
+        ->findOrFail($id);
+
+        // Increment views
+        $blog->increment('views');
+
+        // Check if current user is the owner
+        $isOwner = Auth::check() && Auth::id() === $blog->user_id;
+
+        // Check if current user has liked this blog
+        $isLiked = Auth::check() 
+            ? Auth::user()->likedBlogs()->where('blog_id', $id)->exists()
+            : false;
+
+        // Check if current user has bookmarked this blog
+        $isBookmarked = Auth::check() 
+            ? Auth::user()->bookmarkedBlogs()->where('blog_id', $id)->exists()
+            : false;
+
+        return Inertia::render('Blog/Show', [
+            'blog' => $blog,
+            'isOwner' => $isOwner,
+            'isLiked' => $isLiked,
+            'isBookmarked' => $isBookmarked,
+        ]);
+    }
+
+    public function edit($id)
+    {
+        $blog = Blog::with(['tags'])->findOrFail($id);
+
+        if ($blog->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $categories = Category::with('children')
+            ->whereNull('parent_id')
+            ->get();
+
+        return Inertia::render('Blog/Edit', [
+            'blog' => $blog,
+            'categories' => $categories,
+        ]);
     }
 
     public function update(Request $request, $id)
     {
         $blog = Blog::findOrFail($id);
 
-        // Check if user is authorized to update
         if ($blog->user_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
 
-        $payload = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'content' => ['required', 'string'],
-            'category_id' => ['required', 'exists:categories,id'],
-            'status' => ['required', 'in:draft,published'],
-            'thumbnail' => ['nullable'],
-            'tags' => ['array'],
-            'tags.*' => ['string', 'max:50'],
+        $validated = $request->validate([
+            'title' => 'required|string|max:100',
+            'content' => 'required|string',
+            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'category_id' => 'required|exists:categories,id',
+            'tags' => 'nullable|array',
+            'tags.*' => 'string|max:50',
+            'status' => 'required|in:draft,published',
         ]);
 
-        // Update blog fields
-        $blog->title = $payload['title'];
-        $blog->content = $payload['content'];
-        $blog->status = $payload['status'];
-        $blog->category_id = $payload['category_id'];
-
-        // Handle thumbnail update
         if ($request->hasFile('thumbnail')) {
-            // Delete old thumbnail if exists
             if ($blog->thumbnail_url) {
                 $oldPath = str_replace('/storage/', '', $blog->thumbnail_url);
                 Storage::disk('public')->delete($oldPath);
             }
-
-            // Store new thumbnail
-            $path = $request->file('thumbnail')->store('blogs', 'public');
-            $blog->thumbnail_url = Storage::url($path);
-        } elseif (!empty($payload['thumbnail']) && strpos($payload['thumbnail'], 'data:image') === 0) {
-            // Delete old thumbnail if exists
-            if ($blog->thumbnail_url) {
-                $oldPath = str_replace('/storage/', '', $blog->thumbnail_url);
-                Storage::disk('public')->delete($oldPath);
-            }
-
-            // Store new base64 image
-            $blog->thumbnail_url = $this->storeBase64Image($payload['thumbnail']);
-        }
-        // If thumbnail is null or empty string, remove existing thumbnail
-        elseif (array_key_exists('thumbnail', $payload) && empty($payload['thumbnail'])) {
-            if ($blog->thumbnail_url) {
-                $oldPath = str_replace('/storage/', '', $blog->thumbnail_url);
-                Storage::disk('public')->delete($oldPath);
-                $blog->thumbnail_url = null;
-            }
+            $thumbnailPath = $request->file('thumbnail')->store('thumbnails', 'public');
+            $blog->thumbnail_url = Storage::url($thumbnailPath);
         }
 
-        $blog->save();
+        $blog->update([
+            'category_id' => $validated['category_id'],
+            'title' => $validated['title'],
+            'content' => $validated['content'],
+            'status' => $validated['status'],
+        ]);
 
         // Update tags
-        if (isset($payload['tags'])) {
-            $tagIds = collect($payload['tags'])
-                ->map(fn ($tag) => Tag::firstOrCreate(['name' => trim($tag)])->id)
-                ->all();
-
-            $blog->tags()->sync($tagIds);
-        } else {
-            $blog->tags()->sync([]);
+        $blog->tags()->detach();
+        if (!empty($validated['tags'])) {
+            foreach ($validated['tags'] as $tagName) {
+                $tag = Tag::firstOrCreate(['name' => $tagName]);
+                $blog->tags()->attach($tag->id);
+            }
         }
 
-        return redirect()
-            ->route('blog.show', $blog->id)
-            ->with('success', $payload['status'] === 'draft'
-                ? 'Blog updated and saved as draft.'
-                : 'Blog updated successfully.');
-    }
-
-    private function storeBase64Image(string $dataUrl): string
-    {
-        if (!preg_match('/^data:image\/(\w+);base64,/', $dataUrl, $matches)) {
-            throw ValidationException::withMessages([
-                'thumbnail' => 'Invalid thumbnail data.',
-            ]);
-        }
-
-        $extension = strtolower($matches[1]);
-
-        if (!in_array($extension, ['jpg', 'jpeg', 'png', 'webp'])) {
-            throw ValidationException::withMessages([
-                'thumbnail' => 'Unsupported thumbnail format.',
-            ]);
-        }
-
-        $data = substr($dataUrl, strpos($dataUrl, ',') + 1);
-        $binary = base64_decode($data, true);
-
-        if ($binary === false) {
-            throw ValidationException::withMessages([
-                'thumbnail' => 'Failed to decode thumbnail.',
-            ]);
-        }
-
-        $filename = 'blogs/' . Str::uuid() . '.' . $extension;
-        Storage::disk('public')->put($filename, $binary);
-
-        return Storage::url($filename);
+        return redirect()->route('blog.show', $blog->id)
+            ->with('success', 'Blog post updated successfully!');
     }
 
     public function destroy($id)
     {
         $blog = Blog::findOrFail($id);
 
-        // Check if user is authorized to delete
         if ($blog->user_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
 
-        // Soft delete
+        // Delete thumbnail
+        if ($blog->thumbnail_url) {
+            $path = str_replace('/storage/', '', $blog->thumbnail_url);
+            Storage::disk('public')->delete($path);
+        }
+
+        // Delete pivot relationships
+        $blog->tags()->detach();
+        $blog->likedByUsers()->detach();
+        $blog->bookmarkedByUsers()->detach();
+
+        // Delete comments (cascade will handle this if set in migration)
+        $blog->comments()->delete();
+
+        // Delete blog
         $blog->delete();
 
-        return redirect()
-            ->route('home')
-            ->with('success', 'Blog deleted successfully.');
+        return redirect()->route('home')
+            ->with('success', 'Blog post deleted successfully!');
     }
 }

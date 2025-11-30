@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,17 +28,42 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(Request $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', 'unique:users,username,' . $request->user()->id],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,' . $request->user()->id],
+            'bio' => ['nullable', 'string', 'max:500'],
+            'location' => ['nullable', 'string', 'max:255'],
+            'link' => ['nullable', 'url', 'max:255'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'], // Max 2MB
+        ]);
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $user = $request->user();
+
+        // Handle avatar upload
+        if ($request->hasFile('avatar')) {
+            // Delete old avatar if exists
+            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+
+            // Store new avatar
+            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+            $validated['avatar'] = $avatarPath; // ✅ Ganti dari avatar_url ke avatar
         }
 
-        $request->user()->save();
+        $user->fill($validated);
 
-        return Redirect::route('profile.edit');
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        $user->save();
+
+        return Redirect::route('profile.show', $user->username)
+            ->with('success', 'Profile updated successfully!');
     }
 
     /**
@@ -50,6 +76,11 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+
+        // Delete avatar if exists
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
+        }
 
         Auth::logout();
 

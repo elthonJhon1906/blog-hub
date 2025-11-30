@@ -1,0 +1,225 @@
+import { Link } from "@inertiajs/react";
+
+export default function SideBar({ popularTags, topUsers, topPosts, router }) {
+    // Remove # prefix if exists
+    const cleanTagName = (tagName) => {
+        return tagName.startsWith("#") ? tagName.substring(1) : tagName;
+    };
+
+    return (
+        <div className="flex-1 flex flex-col gap-5 max-lg:hidden">
+            {/* Popular Tags */}
+            <div className="card bg-base-100 shadow-sm border border-gray-200">
+                <div className="card-body p-4">
+                    <h3 className="card-title text-base mb-3">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 text-primary"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                            />
+                        </svg>
+                        Popular Tags
+                    </h3>
+                    {popularTags.length > 0 ? (
+                        <>
+                            <div className="flex flex-wrap gap-2">
+                                {popularTags.slice(0, 8).map((tag) => (
+                                    <button
+                                        key={tag.id}
+                                        onClick={() =>
+                                            router.get(route("blog.index"), {
+                                                tag: cleanTagName(tag.name),
+                                            })
+                                        }
+                                        className="badge badge-lg bg-gray-200 border border-gray-400 px-1 hover:bg-gray-300 transition cursor-pointer"
+                                    >
+                                        #{cleanTagName(tag.name)}
+                                        <span className="ml-1 text-xs opacity-70">
+                                            {tag.count}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                            {popularTags.length > 8 && (
+                                <button className="btn btn-sm btn-ghost w-full mt-2">
+                                    View All Tags →
+                                </button>
+                            )}
+                        </>
+                    ) : (
+                        <p className="text-sm text-gray-500 text-center py-4">
+                            No tags available yet
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            {/* Top Users */}
+            <div className="card bg-base-100 shadow-sm border border-gray-200">
+                <div className="card-body p-4">
+                    <h3 className="card-title text-base mb-3">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 text-primary"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                            />
+                        </svg>
+                        Top Writers
+                    </h3>
+                    <div className="space-y-3">
+                        {topUsers.map((user, index) => (
+                            <Link
+                                key={user.id}
+                                href={route("profile.show", user.username)}
+                                className="flex items-center gap-3 p-2 rounded-lg hover:bg-base-200 transition cursor-pointer"
+                            >
+                                <div className="badge bg-blue-800 badge-sm text-white flex-shrink-0">
+                                    {index + 1}
+                                </div>
+                                <div className="avatar flex-shrink-0">
+                                    <div className="w-10 h-10 rounded-full ring ring-gray-200 ring-offset-2">
+                                        {user.avatar_url ? (
+                                            <img
+                                                src={`/storage/${user.avatar_url}`}
+                                                alt={user.name}
+                                                className="w-full h-full object-cover rounded-full"
+                                                onError={(e) => {
+                                                    e.target.style.display =
+                                                        "none";
+                                                    e.target.nextElementSibling.style.display =
+                                                        "flex";
+                                                }}
+                                            />
+                                        ) : null}
+                                        <div
+                                            className="w-full h-full bg-blue-900 text-white flex items-center justify-center rounded-full"
+                                            style={{
+                                                display: user.avatar_url
+                                                    ? "none"
+                                                    : "flex",
+                                            }}
+                                        >
+                                            <span className="text-sm font-semibold">
+                                                {user.name
+                                                    .charAt(0)
+                                                    .toUpperCase()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-sm truncate">
+                                        {user.name}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                        {user.blogs_count || 0} posts
+                                    </p>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                    {topUsers.length > 0 && (
+                        <Link
+                            href={route("blog.index")}
+                            className="btn btn-sm btn-ghost w-full mt-2"
+                        >
+                            View All Writers →
+                        </Link>
+                    )}
+                </div>
+            </div>
+
+            {/* Top Posts */}
+            <div className="card bg-base-100 shadow-sm border border-gray-200">
+                <div className="card-body p-4">
+                    <h3 className="card-title text-base mb-3">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 text-primary"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                            />
+                        </svg>
+                        Trending Posts
+                    </h3>
+                    <div className="space-y-3">
+                        {topPosts.map((post, index) => (
+                            <Link
+                                key={post.id}
+                                href={`/blog/${post.id}`}
+                                className="flex items-start gap-3 p-2 rounded-lg hover:bg-base-200 transition w-full"
+                            >
+                                <div className="badge badge-error badge-sm mt-1 flex-shrink-0">
+                                    {index + 1}
+                                </div>
+                                <figure className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-gray-100">
+                                    <img
+                                        src={
+                                            post.thumbnail_url ||
+                                            "https://via.placeholder.com/100x100?text=No+Image"
+                                        }
+                                        alt={post.title}
+                                        className="w-full h-full object-cover"
+                                    />
+                                </figure>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-sm mb-1 line-clamp-2 break-all">
+                                        {post.title}
+                                    </p>
+                                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                                        <span className="truncate flex-1 min-w-0">
+                                            {post.user?.name}
+                                        </span>
+                                        <span className="flex-shrink-0">•</span>
+                                        <span className="flex items-center gap-1 flex-shrink-0">
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-3 w-3"
+                                                fill="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                            </svg>
+                                            {post.likes_count || 0}
+                                        </span>
+                                    </div>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                    {topPosts.length > 0 && (
+                        <Link
+                            href={route("blog.index")}
+                            className="btn btn-sm btn-ghost w-full mt-2"
+                        >
+                            View All Trending →
+                        </Link>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}

@@ -27,7 +27,7 @@ export default function BlogPreview() {
         }
     }, [tags]);
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing } = useForm({
         title: title ?? "",
         content: content ?? "",
         thumbnail: thumbnail ?? null,
@@ -37,6 +37,7 @@ export default function BlogPreview() {
     });
 
     const [renderedContent, setRenderedContent] = useState("");
+    const [submittingAs, setSubmittingAs] = useState(null);
 
     useEffect(() => {
         setData((prev) => ({
@@ -72,40 +73,54 @@ export default function BlogPreview() {
 
     const handleBackToEdit = () => {
         const routeName = is_editing ? "blog.edit" : "blog.create";
-        const routeParams = is_editing ? [blog_id] : [];
+        const routeParams = is_editing ? blog_id : undefined;
 
-        router.visit(route(routeName, ...routeParams), {
-            method: "get",
-            data: {
-                preservedData: JSON.stringify({
-                    title,
-                    content,
-                    thumbnail,
-                    category_id,
-                    tags: parsedTags,
-                    status,
-                }),
-            },
-        });
+        // Simpan ke sessionStorage
+        const dataToSave = {
+            title,
+            content,
+            thumbnail,
+            category_id,
+            tags: parsedTags,
+            status,
+        };
+        sessionStorage.setItem("preserved_draft", JSON.stringify(dataToSave));
+
+        // Redirect langsung
+        router.get(route(routeName, routeParams));
     };
 
     const handleSubmit = (targetStatus) => {
-        setData("status", targetStatus);
+        setSubmittingAs(targetStatus);
+
+        const formData = {
+            ...data,
+            status: targetStatus,
+        };
 
         if (is_editing) {
-            // Update existing blog
             post(route("blog.update", blog_id), {
+                data: formData,
                 preserveScroll: true,
                 onSuccess: () => {
+                    // Clear session setelah berhasil submit
+                    sessionStorage.removeItem("preserved_draft");
                     router.visit(route("blog.show", blog_id));
+                },
+                onFinish: () => {
+                    setSubmittingAs(null);
                 },
             });
         } else {
-            // Create new blog
             post(route("blog.store"), {
+                data: formData,
                 preserveScroll: true,
-                onSuccess: () => {
-                    router.visit(route("blog.create"));
+                onSuccess: (page) => {
+                    // Clear sessionStorage setelah publish
+                    sessionStorage.removeItem("preserved_draft");
+                },
+                onFinish: () => {
+                    setSubmittingAs(null);
                 },
             });
         }
@@ -119,6 +134,7 @@ export default function BlogPreview() {
                     <button
                         onClick={handleBackToEdit}
                         className="btn btn-ghost btn-sm"
+                        disabled={processing}
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -150,7 +166,7 @@ export default function BlogPreview() {
                         <img
                             src={thumbnail}
                             alt={title}
-                            className="w-full h-full object-cover "
+                            className="w-full h-full object-cover"
                         />
                     </figure>
                 )}
@@ -166,7 +182,7 @@ export default function BlogPreview() {
                     )}
 
                     {/* Title */}
-                    <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                    <h1 className="text-4xl font-bold text-gray-900 mb-4 break-words">
                         {title || "Untitled Blog Post"}
                     </h1>
 
@@ -226,25 +242,25 @@ export default function BlogPreview() {
             {/* Action Buttons */}
             <div className="flex gap-3 justify-end mt-6">
                 <button
-                    className="btn bg-gray-200 border border-gray-500 hover:bg-gray-300 hover:cursor-pointer px-3"
+                    className="btn bg-gray-200 border border-gray-500 hover:bg-gray-300 px-6"
                     onClick={() => handleSubmit("draft")}
                     disabled={processing}
                 >
-                    {processing ? (
+                    {submittingAs === "draft" ? (
                         <span className="loading loading-spinner loading-sm"></span>
                     ) : (
-                        "Draft"
+                        "Save as Draft"
                     )}
                 </button>
                 <button
-                    className="btn bg-blue-900 text-white hover:bg-blue-800 hover:cursor-pointer px-3"
+                    className="btn bg-blue-900 text-white hover:bg-blue-800 px-6"
                     onClick={() => handleSubmit("published")}
                     disabled={processing}
                 >
-                    {processing ? (
+                    {submittingAs === "published" ? (
                         <span className="loading loading-spinner loading-sm"></span>
                     ) : is_editing ? (
-                        "Update"
+                        "Update & Publish"
                     ) : (
                         "Publish Now"
                     )}

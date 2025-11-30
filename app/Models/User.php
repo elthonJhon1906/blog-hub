@@ -84,20 +84,20 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the blog likes for the user.
+     * Get the blogs that the user has liked.
      */
     public function likedBlogs(): BelongsToMany
     {
-        return $this->belongsToMany(Blog::class, 'blog_likes')
+        return $this->belongsToMany(Blog::class, 'blog_likes', 'user_id', 'blog_id')
             ->withTimestamps();
     }
 
     /**
-     * Get the bookmarks for the user.
+     * Get the blogs that the user has bookmarked.
      */
-    public function bookmarks(): BelongsToMany
+    public function bookmarkedBlogs(): BelongsToMany
     {
-        return $this->belongsToMany(Blog::class, 'bookmarks')
+        return $this->belongsToMany(Blog::class, 'bookmarks', 'user_id', 'blog_id')
             ->withTimestamps();
     }
 }
