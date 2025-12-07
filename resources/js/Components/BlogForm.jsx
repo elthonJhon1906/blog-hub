@@ -190,11 +190,11 @@ export default function BlogForm({
     return (
         <div className="space-y-6">
             {/* Title */}
-            <div className="card bg-base-100 shadow-sm border border-gray-200">
+            <div className="border border-gray-200 shadow-sm card bg-base-100">
                 <div className="card-body">
                     <label className="form-control">
                         <div className="label">
-                            <span className="label-text font-semibold text-base">
+                            <span className="text-base font-semibold label-text">
                                 Title <span className="text-error">*</span>
                             </span>
                             <span
@@ -209,7 +209,7 @@ export default function BlogForm({
                         </div>
                         <input
                             type="text"
-                            className="input input-bordered w-full text-lg"
+                            className="w-full text-lg input input-bordered"
                             placeholder="Enter an eye-catching title..."
                             value={formData.title}
                             onChange={handleTitleChange}
@@ -221,12 +221,12 @@ export default function BlogForm({
             </div>
 
             {/* Thumbnail & Category & Tags */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {/* Thumbnail */}
-                <div className="card bg-base-100 shadow-sm border border-gray-200">
+                <div className="border border-gray-200 shadow-sm card bg-base-100">
                     <div className="card-body">
                         <div className="label">
-                            <span className="label-text font-semibold text-base">
+                            <span className="text-base font-semibold label-text">
                                 Thumbnail Image{" "}
                                 <span className="text-error">*</span>
                             </span>
@@ -234,11 +234,11 @@ export default function BlogForm({
 
                         <div className="flex flex-col gap-4">
                             {imagePreview ? (
-                                <div className="relative w-full h-64 rounded-lg overflow-hidden bg-gray-100">
+                                <div className="relative w-full h-64 overflow-hidden bg-gray-100 rounded-lg">
                                     <img
                                         src={imagePreview}
                                         alt="Preview"
-                                        className="w-full h-full object-cover"
+                                        className="object-cover w-full h-full"
                                     />
                                     <button
                                         type="button"
@@ -255,7 +255,7 @@ export default function BlogForm({
                                     </button>
                                 </div>
                             ) : (
-                                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                                <label className="flex flex-col items-center justify-center w-full h-64 transition-colors border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <svg
                                             className="w-10 h-10 mb-3 text-gray-400"
@@ -294,17 +294,17 @@ export default function BlogForm({
 
                 <div className="flex flex-col gap-4">
                     {/* Category */}
-                    <div className="card bg-base-100 shadow-sm border border-gray-200">
+                    <div className="border border-gray-200 shadow-sm card bg-base-100">
                         <div className="card-body">
                             <label className="form-control">
                                 <div className="label">
-                                    <span className="label-text font-semibold text-base">
+                                    <span className="text-base font-semibold label-text">
                                         Category{" "}
                                         <span className="text-error">*</span>
                                     </span>
                                 </div>
                                 <select
-                                    className="select select-bordered w-full"
+                                    className="w-full select select-bordered"
                                     value={formData.category_id}
                                     onChange={(e) =>
                                         setFormData((prev) => ({
@@ -315,34 +315,49 @@ export default function BlogForm({
                                     required
                                 >
                                     <option value="">Select a category</option>
-                                    {categories?.map((parent) => (
-                                        <optgroup
-                                            key={parent.id}
-                                            label={parent.name}
-                                        >
-                                            {parent.children?.map((child) => (
+                                    {categories?.map((parent) => {
+                                        const children = parent.children ?? [];
+
+                                        if (children.length === 0) {
+                                            return (
                                                 <option
-                                                    key={child.id}
-                                                    value={child.id}
+                                                    key={parent.id}
+                                                    value={parent.id}
                                                 >
-                                                    {child.name}
+                                                    {parent.name}
                                                 </option>
-                                            ))}
-                                        </optgroup>
-                                    ))}
+                                            );
+                                        }
+
+                                        return (
+                                            <optgroup
+                                                key={parent.id}
+                                                label={parent.name}
+                                            >
+                                                {children.map((child) => (
+                                                    <option
+                                                        key={child.id}
+                                                        value={child.id}
+                                                    >
+                                                        {child.name}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        );
+                                    })}
                                 </select>
                             </label>
                         </div>
                     </div>
 
                     {/* Tags */}
-                    <div className="card bg-base-100 shadow-sm border border-gray-200">
+                    <div className="border border-gray-200 shadow-sm card bg-base-100">
                         <div className="card-body">
                             <div className="label">
-                                <span className="label-text font-semibold text-base">
+                                <span className="text-base font-semibold label-text">
                                     Tags
                                 </span>
-                                <span className="label-text-alt text-gray-500">
+                                <span className="text-gray-500 label-text-alt">
                                     Press Enter to add
                                 </span>
                             </div>
@@ -350,7 +365,7 @@ export default function BlogForm({
                             <div className="flex gap-2">
                                 <input
                                     type="text"
-                                    className="input input-bordered flex-1"
+                                    className="flex-1 input input-bordered"
                                     placeholder="Add tags (e.g., technology, tutorial)"
                                     value={tagInput}
                                     onChange={(e) =>
@@ -361,7 +376,7 @@ export default function BlogForm({
                                 />
                                 <button
                                     type="button"
-                                    className="btn bg-blue-900 text-white hover:bg-blue-800 px-3"
+                                    className="px-3 text-white bg-blue-900 btn hover:bg-blue-800"
                                     onClick={addTag}
                                 >
                                     Add
@@ -373,7 +388,7 @@ export default function BlogForm({
                                     {tags.map((tag, index) => (
                                         <div
                                             key={index}
-                                            className="badge badge-primary gap-2 p-3"
+                                            className="gap-2 p-3 badge badge-primary"
                                         >
                                             #{tag}
                                             <button
@@ -389,7 +404,7 @@ export default function BlogForm({
                             )}
 
                             <div className="label">
-                                <span className="label-text-alt text-gray-500">
+                                <span className="text-gray-500 label-text-alt">
                                     {tags.length} tag
                                     {tags.length !== 1 ? "s" : ""} added
                                 </span>
@@ -400,10 +415,10 @@ export default function BlogForm({
             </div>
 
             {/* Content */}
-            <div className="card bg-base-100 shadow-sm border border-gray-200">
+            <div className="border border-gray-200 shadow-sm card bg-base-100">
                 <div className="card-body">
                     <div className="label">
-                        <span className="label-text font-semibold text-base">
+                        <span className="text-base font-semibold label-text">
                             Content <span className="text-error">*</span>
                         </span>
                     </div>

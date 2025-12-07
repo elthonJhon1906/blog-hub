@@ -37,21 +37,19 @@ class ProfileController extends Controller
             'bio' => ['nullable', 'string', 'max:500'],
             'location' => ['nullable', 'string', 'max:255'],
             'link' => ['nullable', 'url', 'max:255'],
-            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'], // Max 2MB
+            'avatar_url' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ]);
 
         $user = $request->user();
 
         // Handle avatar upload
-        if ($request->hasFile('avatar')) {
-            // Delete old avatar if exists
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
+        if ($request->hasFile('avatar_url')) {
+            if ($user->avatar_url && Storage::disk('public')->exists($user->avatar_url)) {
+                Storage::disk('public')->delete($user->avatar_url);
             }
 
-            // Store new avatar
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
-            $validated['avatar'] = $avatarPath; // ✅ Ganti dari avatar_url ke avatar
+            $avatarPath = $request->file('avatar_url')->store('profile', 'public');
+            $validated['avatar_url'] = $avatarPath;
         }
 
         $user->fill($validated);
@@ -78,8 +76,8 @@ class ProfileController extends Controller
         $user = $request->user();
 
         // Delete avatar if exists
-        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-            Storage::disk('public')->delete($user->avatar);
+        if ($user->avatar_url && Storage::disk('public')->exists($user->avatar_url)) {
+            Storage::disk('public')->delete($user->avatar_url);
         }
 
         Auth::logout();
