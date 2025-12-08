@@ -12,7 +12,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("CREATE TYPE blog_status_enum AS ENUM ('draft','published','archived')");
+        DB::statement(<<<SQL
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_type WHERE typname = 'blog_status_enum'
+                ) THEN
+                    CREATE TYPE blog_status_enum AS ENUM ('draft','published','archived');
+                END IF;
+            END
+            $$;
+        SQL);
 
         Schema::create('blogs', function (Blueprint $table) {
             $table->id();
@@ -24,7 +34,8 @@ return new class extends Migration
             $table->foreignId('category_id')->constrained('categories','id');
             $table->integer('views')->default(0);
             $table->integer('likes')->default(0);
-            $table->timestamps()->default(DB::raw('CURRENT_TIMESTAMP'));
+            $table->timestamp('created_at')->useCurrent();
+            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
             $table->softDeletes('deleted_at');
         });
     }
@@ -35,5 +46,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('blogs');
+        DB::statement('DROP TYPE IF EXISTS blog_status_enum');
     }
 };

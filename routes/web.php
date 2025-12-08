@@ -34,10 +34,10 @@ Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
 Route::middleware('auth')->group(function () {
     // Create & Preview - HARUS DI ATAS {id}
     Route::get('/blog/create', [BlogController::class, 'create'])->name('blog.create');
-    
+
     Route::match(['get', 'post'], '/blog/preview', function () {
         $request = request();
-        
+
         if ($request->isMethod('post')) {
             $tags = $request->input('tags', []);
             if (is_string($tags)) {
@@ -60,7 +60,7 @@ Route::middleware('auth')->group(function () {
             session(['blog_preview' => $previewData]);
         } else {
             $previewData = session('blog_preview');
-            
+
             if (!$previewData) {
                 return redirect()->route('home')->with('error', 'Preview session expired. Please try again.');
             }
@@ -71,7 +71,7 @@ Route::middleware('auth')->group(function () {
 
     // Store Blog
     Route::post('/blog', [BlogController::class, 'store'])->name('blog.store');
-    
+
     // Edit Blog
     Route::get('/blog/{id}/edit', [BlogController::class, 'edit'])->name('blog.edit');
     Route::post('/blog/{id}', [BlogController::class, 'update'])->name('blog.update');
@@ -85,7 +85,7 @@ Route::middleware('auth')->group(function () {
     // Like & Bookmark
     Route::post('/blog/{blog}/like', [BlogLikeController::class, 'toggle'])->name('blog.like.toggle');
     Route::post('/blog/{blog}/bookmark', [BookmarkController::class, 'toggle'])->name('blog.bookmark.toggle');
-    
+
     // Bookmarks List
     Route::get('/bookmarks', [BookmarkController::class, 'index'])->name('bookmarks.index');
 });
@@ -99,9 +99,9 @@ Route::get('/blog/{id}', [BlogController::class, 'show'])->name('blog.show');
 // ===================================
 // USER PROFILE
 // ===================================
-Route::get('/profile/{username}', [UserController::class, 'show'])->name('profile.show');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/profile/{username}', [UserController::class, 'show'])->name('profile.show');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -117,37 +117,37 @@ Route::prefix('admin')
     ->group(function () {
         // Dashboard
         Route::get('/', [AdminController::class, 'index'])->name('dashboard');
-        
+
         // Users Management
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
         Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
-        
+
         // Blogs Management
         Route::get('/blogs', [AdminBlogController::class, 'index'])->name('blogs.index');
         Route::delete('/blogs/{blog}', [AdminBlogController::class, 'destroy'])->name('blogs.destroy');
         Route::post('/blogs/{blog}/status', [AdminBlogController::class, 'updateStatus'])->name('blogs.update-status');
-        
+
         // Categories Management
         Route::get('/categories', [AdminCategoryController::class, 'index'])->name('categories.index');
         Route::post('/categories', [AdminCategoryController::class, 'store'])->name('categories.store');
         Route::put('/categories/{category}', [AdminCategoryController::class, 'update'])->name('categories.update');
         Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy'])->name('categories.destroy');
-        
+
         // Tags Management
         Route::get('/tags', [AdminTagController::class, 'index'])->name('tags.index');
         Route::post('/tags', [AdminTagController::class, 'store'])->name('tags.store');
         Route::put('/tags/{tag}', [AdminTagController::class, 'update'])->name('tags.update');
         Route::delete('/tags/{tag}', [AdminTagController::class, 'destroy'])->name('tags.destroy');
-        
+
         // Pages Management
         Route::get('/pages', [AdminPageController::class, 'index'])->name('pages.index');
         Route::post('/pages', [AdminPageController::class, 'store'])->name('pages.store');
         Route::put('/pages/{page}', [AdminPageController::class, 'update'])->name('pages.update');
         Route::delete('/pages/{page}', [AdminPageController::class, 'destroy'])->name('pages.destroy');
         Route::post('/pages/upload-image', [AdminPageController::class, 'uploadImage'])->name('pages.upload-image');
-        
+
         // Roles Management
         Route::get('/roles', [AdminRoleController::class, 'index'])->name('roles.index');
     });

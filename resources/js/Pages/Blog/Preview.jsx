@@ -4,6 +4,25 @@ import GuestLayout from "@/Layouts/GuestLayout";
 import { QuillDeltaToHtmlConverter } from "quill-delta-to-html";
 import "quill/dist/quill.snow.css";
 
+const dataURLToFile = (dataUrl, filename = "thumbnail.png") => {
+    if (!dataUrl?.startsWith("data:")) return null;
+
+    const arr = dataUrl.split(",");
+    if (arr.length < 2) return null;
+
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : "image/png";
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+
+    return new File([u8arr], filename, { type: mime });
+};
+
 export default function BlogPreview() {
     const {
         title,
@@ -27,7 +46,7 @@ export default function BlogPreview() {
         }
     }, [tags]);
 
-    const { data, setData, post, processing } = useForm({
+    const form = useForm({
         title: title ?? "",
         content: content ?? "",
         thumbnail: thumbnail ?? null,
@@ -35,6 +54,7 @@ export default function BlogPreview() {
         tags: parsedTags,
         status: status ?? "published",
     });
+    const { data, setData, processing } = form;
 
     const [renderedContent, setRenderedContent] = useState("");
     const [submittingAs, setSubmittingAs] = useState(null);
@@ -90,40 +110,73 @@ export default function BlogPreview() {
         router.get(route(routeName, routeParams));
     };
 
-    const handleSubmit = (targetStatus) => {
-        setSubmittingAs(targetStatus);
-
-        const formData = {
-            ...data,
+    const preparePayload = (currentData, targetStatus) => {
+        const payload = {
+            ...currentData,
             status: targetStatus,
         };
 
-        if (is_editing) {
-            post(route("blog.update", blog_id), {
-                data: formData,
-                preserveScroll: true,
-                onSuccess: () => {
-                    // Clear session setelah berhasil submit
-                    sessionStorage.removeItem("preserved_draft");
-                    router.visit(route("blog.show", blog_id));
-                },
-                onFinish: () => {
-                    setSubmittingAs(null);
-                },
-            });
-        } else {
-            post(route("blog.store"), {
-                data: formData,
-                preserveScroll: true,
-                onSuccess: (page) => {
-                    // Clear sessionStorage setelah publish
-                    sessionStorage.removeItem("preserved_draft");
-                },
-                onFinish: () => {
-                    setSubmittingAs(null);
-                },
-            });
+        if (Array.isArray(payload.tags)) {
+            payload.tags = payload.tags.map((tag) =>
+                typeof tag === "string" ? tag : `${tag}`
+            );
+        } else if (typeof payload.tags === "string") {
+            try {
+                const parsed = JSON.parse(payload.tags);
+                payload.tags = Array.isArray(parsed) ? parsed : [];
+            } catch {
+                payload.tags = [];
+            }
         }
+
+        if (payload.thumbnail && typeof payload.thumbnail === "string") {
+            if (payload.thumbnail.startsWith("data:")) {
+                const file = dataURLToFile(
+                    payload.thumbnail,
+                    `thumbnail-${Date.now()}.png`
+                );
+                payload.thumbnail = file;
+            } else if (is_editing) {
+                delete payload.thumbnail;
+            }
+        }
+
+        return payload;
+    };
+
+    const handleSubmit = (targetStatus) => {
+        setSubmittingAs(targetStatus);
+
+        const formData = preparePayload(data, targetStatus);
+
+        if (
+            !is_editing &&
+            (!formData.thumbnail || !(formData.thumbnail instanceof File))
+        ) {
+            alert(
+                "Thumbnail tidak valid. Silakan kembali ke form dan unggah ulang gambar."
+            );
+            setSubmittingAs(null);
+            return;
+        }
+
+        const submitRoute = is_editing
+            ? route("blog.update", blog_id)
+            : route("blog.store");
+
+        form.transform(() => formData);
+        form.post(submitRoute, {
+            preserveScroll: true,
+            onSuccess: () => {
+                sessionStorage.removeItem("preserved_draft");
+                if (is_editing) {
+                    router.visit(route("blog.show", blog_id));
+                }
+            },
+            onFinish: () => {
+                setSubmittingAs(null);
+            },
+        });
     };
 
     return (
@@ -138,7 +191,7 @@ export default function BlogPreview() {
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
+                            className="w-5 h-5"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -152,26 +205,26 @@ export default function BlogPreview() {
                         </svg>
                         Back to {is_editing ? "Edit" : "Create"}
                     </button>
-                    <div className="badge badge-success text-white">
+                    <div className="text-white badge badge-success">
                         Preview Mode
                     </div>
                 </div>
             </div>
 
             {/* Blog Content */}
-            <article className="card bg-base-100 shadow-lg border border-gray-200">
+            <article className="border border-gray-200 shadow-lg card bg-base-100">
                 {/* Thumbnail */}
                 {thumbnail && (
                     <figure className="w-full h-96">
                         <img
                             src={thumbnail}
                             alt={title}
-                            className="w-full h-full object-cover"
+                            className="object-cover w-full h-full"
                         />
                     </figure>
                 )}
 
-                <div className="card-body p-8">
+                <div className="p-8 card-body">
                     {/* Category */}
                     {category && (
                         <div className="mb-4">
@@ -182,16 +235,16 @@ export default function BlogPreview() {
                     )}
 
                     {/* Title */}
-                    <h1 className="text-4xl font-bold text-gray-900 mb-4 break-words">
+                    <h1 className="mb-4 text-4xl font-bold text-gray-900 break-words">
                         {title || "Untitled Blog Post"}
                     </h1>
 
                     {/* Meta Info */}
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-6 pb-6 border-b">
+                    <div className="flex items-center gap-4 pb-6 mb-6 text-sm text-gray-600 border-b">
                         <div className="flex items-center gap-2">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
+                                className="w-5 h-5"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -223,7 +276,7 @@ export default function BlogPreview() {
 
                     {/* Tags */}
                     {parsedTags.length > 0 && (
-                        <div className="pt-6 border-t mt-6">
+                        <div className="pt-6 mt-6 border-t">
                             <div className="flex flex-wrap gap-2">
                                 {parsedTags.map((tag, index) => (
                                     <span
@@ -240,9 +293,9 @@ export default function BlogPreview() {
             </article>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 justify-end mt-6">
+            <div className="flex justify-end gap-3 mt-6">
                 <button
-                    className="btn bg-gray-200 border border-gray-500 hover:bg-gray-300 px-6"
+                    className="px-6 bg-gray-200 border border-gray-500 btn hover:bg-gray-300"
                     onClick={() => handleSubmit("draft")}
                     disabled={processing}
                 >
@@ -253,7 +306,7 @@ export default function BlogPreview() {
                     )}
                 </button>
                 <button
-                    className="btn bg-blue-900 text-white hover:bg-blue-800 px-6"
+                    className="px-6 text-white bg-blue-900 btn hover:bg-blue-800"
                     onClick={() => handleSubmit("published")}
                     disabled={processing}
                 >
