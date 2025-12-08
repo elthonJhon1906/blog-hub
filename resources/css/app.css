@@ -225,3 +225,23 @@
     width: 0;
     height: 0;
 }
+
+@keyframes navbarTicker {
+    0% {
+        transform: translateX(100%);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+.navbar-marquee {
+    display: inline-block;
+    min-width: 100%;
+    animation: navbarTicker 18s linear infinite;
+    will-change: transform;
+}
+
+.navbar-marquee:hover {
+    animation-play-state: paused;
+}

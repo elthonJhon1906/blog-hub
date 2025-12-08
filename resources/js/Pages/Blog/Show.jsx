@@ -547,9 +547,9 @@ export default function BlogShow({
                             <button
                                 type="button"
                                 onClick={handleCopyShareUrl}
-                                className="btn btn-primary"
+                                className="p-2 btn btn-primary"
                             >
-                                {isCopied ? "Tersalin" : "Copy"}
+                                {isCopied ? "Tersalin" : "Salin"}
                             </button>
                         </div>
 
