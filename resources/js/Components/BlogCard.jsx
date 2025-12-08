@@ -1,6 +1,6 @@
 import { Link } from "@inertiajs/react";
 
-export default function BlogCard({ blog }) {
+export default function BlogCard({ blog, isAuthenticated = false }) {
     const formatDate = (dateString) => {
         if (!dateString) return "New";
         return new Date(dateString).toLocaleDateString(undefined, {
@@ -12,63 +12,74 @@ export default function BlogCard({ blog }) {
 
     return (
         <Link href={`/blog/${blog.id}`} className="block h-full">
-            <div className="card bg-base-100 w-full h-full border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col">
+            <div className="flex flex-col w-full h-full transition-shadow duration-300 border border-gray-200 shadow-sm card bg-base-100 hover:shadow-md">
                 {/* Image - Fixed Height */}
-                <figure className="relative h-48 flex-shrink-0">
+                <figure className="relative flex-shrink-0 h-48">
                     <img
                         src={
                             blog.thumbnail_url ||
                             "https://placehold.co/640x360/e5e7eb/6b7280?text=No+Image"
                         }
                         alt={blog.title}
-                        className="h-full w-full object-cover"
+                        className="object-cover w-full h-full"
                     />
                     {/* overlay */}
                     <div className="absolute inset-0 bg-black/20"></div>
                     {blog.category && (
-                        <div className="badge absolute top-4 right-4 bg-white/10 backdrop-blur-sm border border-white/40 text-white hover:bg-white/20">
+                        <div className="absolute text-white border badge top-4 right-4 bg-white/10 backdrop-blur-sm border-white/40 hover:bg-white/20">
                             {blog.category.name}
                         </div>
                     )}
                 </figure>
 
                 {/* Card Body - Flexible Height */}
-                <div className="card-body p-5 flex flex-col flex-1">
+                <div className="flex flex-col flex-1 p-5 card-body">
                     {/* Title - Fixed 2 lines */}
                     <h2 className="card-title text-lg font-bold line-clamp-2 hover:text-primary transition-colors min-h-[3.5rem]">
                         {blog.title || "Blog Post Title Goes Here"}
                     </h2>
 
                     {/* Author & Date */}
-                    <div className="flex items-center gap-2 text-sm text-base-content/70 mt-2">
-                        <div className="avatar placeholder">
-                            <div className="bg-blue-900 text-white w-8 rounded-full">
-                                <span className="text-xs">
-                                    {blog.user?.name?.charAt(0).toUpperCase() ||
-                                        "A"}
-                                </span>
+                    <div className="flex items-center gap-3 mt-2 text-sm text-base-content/70">
+                        <div className="avatar">
+                            <div className="flex items-center justify-center w-10 h-10 overflow-hidden text-white rounded-full">
+                                {isAuthenticated && blog.user?.name ? (
+                                    <span className="text-sm font-semibold">
+                                        {blog.user.name
+                                            .charAt(0)
+                                            .toUpperCase()}
+                                    </span>
+                                ) : (
+                                    <img
+                                        src="/person-svgrepo-com.svg"
+                                        alt="Anonymous"
+                                        className="object-contain w-full h-full p-1"
+                                    />
+                                )}
                             </div>
                         </div>
-                        <div>
-                            <p className="font-medium text-base-content truncate max-w-[150px]">
-                                {blog.user?.name || "Anonymous"}
+                        <div className="flex flex-col">
+                            <p className="font-medium text-center text-base-content">
+                                {isAuthenticated
+                                    ? blog.user?.name || "Anonymous"
+                                    : "Penulis Anonim"}
                             </p>
-                            <p className="text-xs">
+                            <p className="text-xs text-center">
                                 {formatDate(blog.created_at)}
                             </p>
                         </div>
                     </div>
 
                     {/* Divider */}
-                    <div className="divider my-2"></div>
+                    <div className="my-2 divider"></div>
 
                     {/* Stats - Push to bottom */}
-                    <div className="flex items-center justify-end gap-3 text-sm text-base-content/60 mt-auto">
+                    <div className="flex items-center justify-end gap-3 mt-auto text-sm text-base-content/60">
                         {/* Likes */}
                         <div className="flex items-center gap-1">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
+                                className="w-5 h-5"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -87,7 +98,7 @@ export default function BlogCard({ blog }) {
                         <div className="flex items-center gap-1">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
+                                className="w-5 h-5"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -106,7 +117,7 @@ export default function BlogCard({ blog }) {
                         <div className="flex items-center gap-1">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
+                                className="w-5 h-5"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"

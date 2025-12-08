@@ -80,7 +80,7 @@ export default function NavBar() {
                                 setIsMobileCategoriesOpen((prev) => !prev);
                             }}
                         >
-                            Categories
+                            Kategori
                         </button>
                         {hasCategories ? (
                             isMobileCategoriesOpen && (
@@ -110,7 +110,7 @@ export default function NavBar() {
                         href="/"
                         className={`btn btn-md ${blueSolid}`}
                     >
-                        Home
+                        Beranda
                     </Link>
                     <div
                         className={`dropdown ${isDesktopCategoriesOpen ? "dropdown-open" : ""}`}
@@ -203,25 +203,16 @@ export default function NavBar() {
                             </svg>
                             <input
                                 type="search"
-                                className="bg-transparent border-none outline-none grow focus:outline-none focus:ring-0 focus:border-0"
-                                placeholder="Search articles..."
+                                className="bg-transparent border-none outline-none search-input grow focus:outline-none focus:ring-0 focus:border-0"
+                                placeholder="Cari Artikel . . . . . . "
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onFocus={() => setIsSearchFocused(true)}
                                 onBlur={() => setIsSearchFocused(false)}
                             />
-                            {searchQuery && (
-                                <button
-                                    type="button"
-                                    className="btn btn-ghost btn-xs"
-                                    onClick={() => setSearchQuery("")}
-                                >
-                                    Clear
-                                </button>
-                            )}
                         </label>
                         <button type="submit" className={`btn btn-md px-4 ${blueSolid}`}>
-                            Search
+                            Cari
                         </button>
                     </form>
 

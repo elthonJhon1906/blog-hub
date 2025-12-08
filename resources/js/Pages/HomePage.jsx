@@ -1,4 +1,4 @@
-import { Head, router } from "@inertiajs/react";
+import { Head, router, usePage } from "@inertiajs/react";
 import GuestLayout from "@/Layouts/GuestLayout";
 import Hero from "@/Components/Hero";
 import SideBar from "@/Components/SideBar";
@@ -11,6 +11,9 @@ export default function HomePage({
     topUsers,
     trendingPosts,
 }) {
+    const { auth } = usePage().props;
+    const isAuthenticated = Boolean(auth?.user);
+
     return (
         <div className="flex gap-5">
             <Head title="Home" />
@@ -33,7 +36,10 @@ export default function HomePage({
                     )}
 
                     {/* Latest Blogs Section */}
-                    <LatestBlogs latestBlogs={latestBlogs} />
+                    <LatestBlogs
+                        latestBlogs={latestBlogs}
+                        isAuthenticated={isAuthenticated}
+                    />
                 </div>
             </div>
 
@@ -43,6 +49,7 @@ export default function HomePage({
                 topUsers={topUsers || []}
                 topPosts={trendingPosts || []}
                 router={router}
+                isAuthenticated={isAuthenticated}
             />
         </div>
     );
