@@ -1,20 +1,26 @@
 import { Link } from "@inertiajs/react";
 
-export default function SideBar({ popularTags, topUsers, topPosts, router }) {
+export default function SideBar({
+    popularTags,
+    topUsers,
+    topPosts,
+    router,
+    isAuthenticated = false,
+}) {
     // Remove # prefix if exists
     const cleanTagName = (tagName) => {
         return tagName.startsWith("#") ? tagName.substring(1) : tagName;
     };
 
     return (
-        <div className="flex-1 flex flex-col gap-5 max-lg:hidden">
+        <div className="flex flex-col flex-1 gap-5 max-lg:hidden">
             {/* Popular Tags */}
-            <div className="card bg-base-100 shadow-sm border border-gray-200">
-                <div className="card-body p-4">
-                    <h3 className="card-title text-base mb-3">
+            <div className="border border-gray-200 shadow-sm card bg-base-100">
+                <div className="p-4 card-body">
+                    <h3 className="mb-3 text-base card-title">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5 text-primary"
+                            className="w-5 h-5 text-primary"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -39,7 +45,7 @@ export default function SideBar({ popularTags, topUsers, topPosts, router }) {
                                                 tag: cleanTagName(tag.name),
                                             })
                                         }
-                                        className="badge badge-lg bg-gray-200 border border-gray-400 px-1 hover:bg-gray-300 transition cursor-pointer"
+                                        className="px-1 transition bg-gray-200 border border-gray-400 cursor-pointer badge badge-lg hover:bg-gray-300"
                                     >
                                         #{cleanTagName(tag.name)}
                                         <span className="ml-1 text-xs opacity-70">
@@ -49,13 +55,13 @@ export default function SideBar({ popularTags, topUsers, topPosts, router }) {
                                 ))}
                             </div>
                             {popularTags.length > 8 && (
-                                <button className="btn btn-sm btn-ghost w-full mt-2">
+                                <button className="w-full mt-2 btn btn-sm btn-ghost">
                                     View All Tags →
                                 </button>
                             )}
                         </>
                     ) : (
-                        <p className="text-sm text-gray-500 text-center py-4">
+                        <p className="py-4 text-sm text-center text-gray-500">
                             No tags available yet
                         </p>
                     )}
@@ -63,12 +69,12 @@ export default function SideBar({ popularTags, topUsers, topPosts, router }) {
             </div>
 
             {/* Top Users */}
-            <div className="card bg-base-100 shadow-sm border border-gray-200">
-                <div className="card-body p-4">
-                    <h3 className="card-title text-base mb-3">
+            <div className="border border-gray-200 shadow-sm card bg-base-100">
+                <div className="p-4 card-body">
+                    <h3 className="mb-3 text-base card-title">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5 text-primary"
+                            className="w-5 h-5 text-primary"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -83,61 +89,78 @@ export default function SideBar({ popularTags, topUsers, topPosts, router }) {
                         Top Writers
                     </h3>
                     <div className="space-y-3">
-                        {topUsers.map((user, index) => (
+                        {topUsers.map((user, index) => {
+                            const showAvatarImage =
+                                isAuthenticated && user.avatar_url;
+                            const maskedName = isAuthenticated
+                                ? user.name
+                                : "Penulis Anonim";
+                            const initial = user.name
+                                ? user.name.charAt(0).toUpperCase()
+                                : "?";
+
+                            return (
                             <Link
                                 key={user.id}
                                 href={route("profile.show", user.username)}
-                                className="flex items-center gap-3 p-2 rounded-lg hover:bg-base-200 transition cursor-pointer"
+                                className="flex items-center gap-3 p-2 transition rounded-lg cursor-pointer hover:bg-base-200"
                             >
-                                <div className="badge bg-blue-800 badge-sm text-white flex-shrink-0">
+                                <div className="flex-shrink-0 text-white bg-blue-800 badge badge-sm">
                                     {index + 1}
                                 </div>
-                                <div className="avatar flex-shrink-0">
+                                <div className="flex-shrink-0 avatar">
                                     <div className="w-10 h-10 rounded-full ring ring-gray-200 ring-offset-2">
-                                        {user.avatar_url ? (
+                                        {showAvatarImage ? (
                                             <img
                                                 src={`/storage/${user.avatar_url}`}
-                                                alt={user.name}
-                                                className="w-full h-full object-cover rounded-full"
+                                                alt={maskedName}
+                                                className="object-cover w-full h-full rounded-full"
                                                 onError={(e) => {
                                                     e.target.style.display =
                                                         "none";
-                                                    e.target.nextElementSibling.style.display =
-                                                        "flex";
+                                                    const fallback =
+                                                        e.target.nextElementSibling;
+                                                    if (fallback) {
+                                                        fallback.style.display = "flex";
+                                                    }
                                                 }}
                                             />
                                         ) : null}
                                         <div
-                                            className="w-full h-full bg-blue-900 text-white flex items-center justify-center rounded-full"
+                                            className="flex items-center justify-center w-full h-full"
                                             style={{
-                                                display: user.avatar_url
+                                                display: showAvatarImage
                                                     ? "none"
                                                     : "flex",
+                                                padding: showAvatarImage
+                                                    ? 0
+                                                    : 6,
                                             }}
                                         >
-                                            <span className="text-sm font-semibold">
-                                                {user.name
-                                                    .charAt(0)
-                                                    .toUpperCase()}
-                                            </span>
+                                            <img
+                                                src="/person-svgrepo-com.svg"
+                                                alt="Penulis Anonim"
+                                                className="object-contain w-full h-full"
+                                            />
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-sm truncate">
-                                        {user.name}
+                                    <p className="text-sm font-semibold truncate">
+                                        {maskedName}
                                     </p>
                                     <p className="text-xs text-gray-500">
                                         {user.blogs_count || 0} posts
                                     </p>
                                 </div>
                             </Link>
-                        ))}
+                        );
+                        })}
                     </div>
                     {topUsers.length > 0 && (
                         <Link
                             href={route("blog.index")}
-                            className="btn btn-sm btn-ghost w-full mt-2"
+                            className="w-full mt-2 btn btn-sm btn-ghost"
                         >
                             View All Writers →
                         </Link>
@@ -146,12 +169,12 @@ export default function SideBar({ popularTags, topUsers, topPosts, router }) {
             </div>
 
             {/* Top Posts */}
-            <div className="card bg-base-100 shadow-sm border border-gray-200">
-                <div className="card-body p-4">
-                    <h3 className="card-title text-base mb-3">
+            <div className="border border-gray-200 shadow-sm card bg-base-100">
+                <div className="p-4 card-body">
+                    <h3 className="mb-3 text-base card-title">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5 text-primary"
+                            className="w-5 h-5 text-primary"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -170,34 +193,34 @@ export default function SideBar({ popularTags, topUsers, topPosts, router }) {
                             <Link
                                 key={post.id}
                                 href={`/blog/${post.id}`}
-                                className="flex items-start gap-3 p-2 rounded-lg hover:bg-base-200 transition w-full"
+                                className="flex items-start w-full gap-3 p-2 transition rounded-lg hover:bg-base-200"
                             >
-                                <div className="badge badge-error badge-sm mt-1 flex-shrink-0">
+                                <div className="flex-shrink-0 mt-1 badge badge-error badge-sm">
                                     {index + 1}
                                 </div>
-                                <figure className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-gray-100">
+                                <figure className="flex-shrink-0 w-16 h-16 overflow-hidden bg-gray-100 rounded-md">
                                     <img
                                         src={
                                             post.thumbnail_url ||
                                             "https://via.placeholder.com/100x100?text=No+Image"
                                         }
                                         alt={post.title}
-                                        className="w-full h-full object-cover"
+                                        className="object-cover w-full h-full"
                                     />
                                 </figure>
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-sm mb-1 line-clamp-2 break-all">
+                                    <p className="mb-1 text-sm font-semibold break-all line-clamp-2">
                                         {post.title}
                                     </p>
                                     <div className="flex items-center gap-2 text-xs text-gray-500">
-                                        <span className="truncate flex-1 min-w-0">
+                                        <span className="flex-1 min-w-0 truncate">
                                             {post.user?.name}
                                         </span>
                                         <span className="flex-shrink-0">•</span>
-                                        <span className="flex items-center gap-1 flex-shrink-0">
+                                        <span className="flex items-center flex-shrink-0 gap-1">
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
-                                                className="h-3 w-3"
+                                                className="w-3 h-3"
                                                 fill="currentColor"
                                                 viewBox="0 0 24 24"
                                             >
@@ -213,7 +236,7 @@ export default function SideBar({ popularTags, topUsers, topPosts, router }) {
                     {topPosts.length > 0 && (
                         <Link
                             href={route("blog.index")}
-                            className="btn btn-sm btn-ghost w-full mt-2"
+                            className="w-full mt-2 btn btn-sm btn-ghost"
                         >
                             View All Trending →
                         </Link>

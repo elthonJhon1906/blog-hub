@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usePage, Link, router } from "@inertiajs/react";
 
 export default function NavBar() {
-    const { categories = [], auth } = usePage().props;
+    const { categories = [], auth, marqueeItems = [] } = usePage().props;
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [isMobileCategoriesOpen, setIsMobileCategoriesOpen] = useState(false);
     const [isDesktopCategoriesOpen, setIsDesktopCategoriesOpen] = useState(false);
+    const [currentHeadlineIndex, setCurrentHeadlineIndex] = useState(0);
     const hasCategories = categories.length > 0;
 
     const blueFill = "from-blue-900 to-blue-700";
@@ -26,6 +27,29 @@ export default function NavBar() {
             .filter(Boolean)
             .join(" ");
     };
+
+    useEffect(() => {
+        if (!marqueeItems.length) return;
+        setCurrentHeadlineIndex(
+            Math.floor(Math.random() * marqueeItems.length)
+        );
+    }, [marqueeItems.length]);
+
+    useEffect(() => {
+        if (!marqueeItems.length) return;
+
+        const interval = setInterval(() => {
+            setCurrentHeadlineIndex((prev) =>
+                marqueeItems.length ? (prev + 1) % marqueeItems.length : 0
+            );
+        }, 60_000);
+
+        return () => clearInterval(interval);
+    }, [marqueeItems.length]);
+
+    const currentHeadline = marqueeItems.length
+        ? marqueeItems[currentHeadlineIndex % marqueeItems.length]
+        : null;
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -56,6 +80,33 @@ export default function NavBar() {
 
     return (
         <div className="sticky top-0 z-50 w-full bg-white border-b border-gray-100">
+            {currentHeadline && (
+                <div className="bg-blue-50 border-b border-blue-100">
+                    <div className="flex items-center gap-3 px-4 py-1 mx-auto text-sm text-blue-900 max-w-7xl sm:px-6 lg:px-10">
+                        <span className="text-xs font-semibold tracking-wider uppercase text-blue-800">
+                            Update
+                        </span>
+                        <div className="flex-1 overflow-hidden" aria-live="polite">
+                            <div
+                                key={`${currentHeadline.id}-${currentHeadlineIndex}`}
+                                className="navbar-marquee whitespace-nowrap"
+                            >
+                                <Link
+                                    href={currentHeadline.url || "/"}
+                                    className="flex items-center gap-2 text-blue-900 hover:text-blue-700"
+                                >
+                                    <strong className="text-xs uppercase tracking-wide">
+                                        {currentHeadline.title}
+                                    </strong>
+                                    <span className="opacity-80">
+                                        {currentHeadline.text}
+                                    </span>
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="flex flex-row justify-between gap-4 px-4 mx-auto navbar max-w-7xl sm:px-6 lg:px-10">
                 {/* Left: brand + mobile menu */}
                 <div className="flex items-center gap-2">
@@ -80,7 +131,7 @@ export default function NavBar() {
                                 setIsMobileCategoriesOpen((prev) => !prev);
                             }}
                         >
-                            Categories
+                            Kategori
                         </button>
                         {hasCategories ? (
                             isMobileCategoriesOpen && (
@@ -110,7 +161,7 @@ export default function NavBar() {
                         href="/"
                         className={`btn btn-md ${blueSolid}`}
                     >
-                        Home
+                        Beranda
                     </Link>
                     <div
                         className={`dropdown ${isDesktopCategoriesOpen ? "dropdown-open" : ""}`}
@@ -203,25 +254,16 @@ export default function NavBar() {
                             </svg>
                             <input
                                 type="search"
-                                className="bg-transparent border-none outline-none grow focus:outline-none focus:ring-0 focus:border-0"
-                                placeholder="Search articles..."
+                                className="bg-transparent border-none outline-none search-input grow focus:outline-none focus:ring-0 focus:border-0"
+                                placeholder="Cari Artikel . . . . . . "
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onFocus={() => setIsSearchFocused(true)}
                                 onBlur={() => setIsSearchFocused(false)}
                             />
-                            {searchQuery && (
-                                <button
-                                    type="button"
-                                    className="btn btn-ghost btn-xs"
-                                    onClick={() => setSearchQuery("")}
-                                >
-                                    Clear
-                                </button>
-                            )}
                         </label>
                         <button type="submit" className={`btn btn-md px-4 ${blueSolid}`}>
-                            Search
+                            Cari
                         </button>
                     </form>
 

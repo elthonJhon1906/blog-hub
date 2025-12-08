@@ -1,7 +1,7 @@
-import { Link, router } from "@inertiajs/react";
+import { Link, router, usePage } from "@inertiajs/react";
 import BlogCard from "./BlogCard";
 
-export default function LatestBlogs({ latestBlogs }) {
+export default function LatestBlogs({ latestBlogs, isAuthenticated }) {
     const formatDate = (dateString) => {
         if (!dateString) return "New";
         return new Date(dateString).toLocaleDateString(undefined, {
@@ -93,7 +93,11 @@ export default function LatestBlogs({ latestBlogs }) {
                             //         </div>
                             //     </div>
                             // </article>
-                            <BlogCard key={blog.id} blog={blog} />
+                            <BlogCard
+                                key={blog.id}
+                                blog={blog}
+                                isAuthenticated={isAuthenticated}
+                            />
                         ))}
                     </div>
                 ) : (

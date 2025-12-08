@@ -4,6 +4,16 @@ import GuestLayout from "@/Layouts/GuestLayout";
 import Comment from "@/Components/Comment";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
+import {
+    FacebookShareButton,
+    FacebookIcon,
+    WhatsappShareButton,
+    WhatsappIcon,
+    LinkedinShareButton,
+    LinkedinIcon,
+    TwitterShareButton,
+    TwitterIcon,
+} from "react-share";
 
 export default function BlogShow({
     blog,
@@ -11,16 +21,27 @@ export default function BlogShow({
     isBookmarked: initialIsBookmarked,
 }) {
     const { auth } = usePage().props;
+    const isAuthenticated = !!auth?.user;
     const [isLiked, setIsLiked] = useState(initialIsLiked || false);
     const [isBookmarked, setIsBookmarked] = useState(
         initialIsBookmarked || false
     );
     const [likeCount, setLikeCount] = useState(blog.likes_count || 0);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [shareUrl, setShareUrl] = useState("");
+    const [isCopied, setIsCopied] = useState(false);
     const contentRef = useRef(null);
     const quillRef = useRef(null);
 
     const isOwner = auth?.user?.id === blog.user_id;
+    const authorName = isAuthenticated
+        ? blog.user?.name || "Anonymous"
+        : "Penulis Anonim";
+    const authorAvatarUrl = blog.user?.avatar_url
+        ? `/storage/${blog.user.avatar_url}`
+        : null;
+    const showAvatarImage = isAuthenticated && authorAvatarUrl;
 
     // Update state when props change (after navigation back)
     useEffect(() => {
@@ -28,6 +49,17 @@ export default function BlogShow({
         setIsBookmarked(initialIsBookmarked || false);
         setLikeCount(blog.likes_count || 0);
     }, [initialIsLiked, initialIsBookmarked, blog.likes_count]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        try {
+            const generatedRoute = route("blog.show", blog.id);
+            setShareUrl(generatedRoute);
+        } catch (error) {
+            setShareUrl(window.location.href);
+        }
+    }, [blog.id]);
 
     // Render Quill content
     useEffect(() => {
@@ -138,6 +170,22 @@ export default function BlogShow({
         });
     };
 
+    const handleShareModalToggle = () => {
+        setShowShareModal((prev) => !prev);
+        setIsCopied(false);
+    };
+
+    const handleCopyShareUrl = async () => {
+        if (!shareUrl) return;
+
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            setIsCopied(true);
+        } catch (error) {
+            console.error("Failed to copy URL", error);
+        }
+    };
+
     return (
         <div className="">
             <Head title={blog.title} />
@@ -146,11 +194,11 @@ export default function BlogShow({
             <div className="flex items-center justify-between mb-6">
                 <Link
                     href="/"
-                    className="btn btn-ghost btn-sm gap-2 text-gray-600 hover:text-blue-900"
+                    className="gap-2 text-gray-600 btn btn-ghost btn-sm hover:text-blue-900"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
+                        className="w-5 h-5"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -169,11 +217,11 @@ export default function BlogShow({
                     <div className="flex gap-2">
                         <button
                             onClick={handleEdit}
-                            className="btn btn-sm btn-outline gap-2 px-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 hover:border-gray-400"
+                            className="gap-2 px-2 text-gray-600 btn btn-sm btn-outline hover:bg-gray-100 hover:text-gray-900 hover:border-gray-400"
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-4 w-4"
+                                className="w-4 h-4"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -189,11 +237,11 @@ export default function BlogShow({
                         </button>
                         <button
                             onClick={handleDelete}
-                            className="btn btn-sm btn-outline gap-2 px-2 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-400"
+                            className="gap-2 px-2 text-red-600 btn btn-sm btn-outline hover:bg-red-50 hover:text-red-700 hover:border-red-400"
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-4 w-4"
+                                className="w-4 h-4"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -212,24 +260,24 @@ export default function BlogShow({
             </div>
 
             {/* Main Article */}
-            <article className="card bg-base-100 shadow-sm border border-gray-200">
+            <article className="border border-gray-200 shadow-sm card bg-base-100">
                 {/* Thumbnail */}
                 {blog.thumbnail_url && (
-                    <figure className="w-full h-96 bg-gray-100">
+                    <figure className="w-full bg-gray-100 h-96">
                         <img
                             src={blog.thumbnail_url}
                             alt={blog.title}
-                            className="w-full h-full object-cover"
+                            className="object-cover w-full h-full"
                         />
                     </figure>
                 )}
 
-                <div className="card-body p-8">
+                <div className="p-8 card-body">
                     {/* Category & Views */}
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                             {blog.category && (
-                                <span className="badge bg-blue-900 text-white border-none">
+                                <span className="text-white bg-blue-900 border-none badge">
                                     {blog.category.name}
                                 </span>
                             )}
@@ -237,7 +285,7 @@ export default function BlogShow({
                         <div className="flex items-center gap-2 text-sm text-gray-500">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
+                                className="w-5 h-5"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -260,32 +308,64 @@ export default function BlogShow({
                     </div>
 
                     {/* Title */}
-                    <h1 className="text-4xl font-bold text-gray-900 mb-4 break-words">
+                    <h1 className="mb-4 text-4xl font-bold text-gray-900 break-words">
                         {blog.title}
                     </h1>
 
                     {/* Author & Date */}
                     <div className="flex items-center gap-4 pb-6 mb-6 border-b border-gray-200">
-                        <div className="avatar placeholder">
-                            <div className="bg-blue-900 text-white rounded-full w-12">
-                                <span className="text-xl">
-                                    {blog.user?.name?.charAt(0) || "A"}
-                                </span>
+                        <div className="avatar">
+                            <div className="w-12 h-12 rounded-full ring ring-gray-200 ring-offset-2">
+                                {showAvatarImage ? (
+                                    <img
+                                        src={authorAvatarUrl}
+                                        alt={authorName}
+                                        className="object-cover w-full h-full rounded-full"
+                                        onError={(e) => {
+                                            e.target.style.display = "none";
+                                            const fallback =
+                                                e.target.nextElementSibling;
+                                            if (fallback) {
+                                                fallback.style.display = "flex";
+                                            }
+                                        }}
+                                    />
+                                ) : null}
+                                <div
+                                    className="flex items-center justify-center w-full h-full"
+                                    style={{
+                                        display: showAvatarImage
+                                            ? "none"
+                                            : "flex",
+                                        padding: showAvatarImage ? 0 : 10,
+                                    }}
+                                >
+                                    <img
+                                        src="/person-svgrepo-com.svg"
+                                        alt="Penulis Anonim"
+                                        className="object-contain w-full h-full"
+                                    />
+                                </div>
                             </div>
                         </div>
                         <div>
                             <div className="font-semibold text-gray-900">
-                                {blog.user?.name || "Anonymous"}
+                                {authorName}
                             </div>
                             <div className="text-sm text-gray-500">
                                 {formatDate(blog.created_at)}
                             </div>
+                            {!isAuthenticated && (
+                                <div className="mt-1 text-xs text-gray-400">
+                                    Login untuk melihat identitas penulis.
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Content - Quill Display */}
                     <div
-                        className="ql-container ql-snow mb-8"
+                        className="mb-8 ql-container ql-snow"
                         style={{ border: "none" }}
                     >
                         <div
@@ -297,12 +377,12 @@ export default function BlogShow({
 
                     {/* Tags */}
                     {blog.tags && blog.tags.length > 0 && (
-                        <div className="pt-6 border-t border-gray-200 mb-6">
+                        <div className="pt-6 mb-6 border-t border-gray-200">
                             <div className="flex flex-wrap gap-2">
                                 {blog.tags.map((tag, index) => (
                                     <span
                                         key={index}
-                                        className="badge badge-outline hover:bg-blue-900 hover:text-white hover:border-blue-900 transition cursor-pointer"
+                                        className="transition cursor-pointer badge badge-outline hover:bg-blue-900 hover:text-white hover:border-blue-900"
                                     >
                                         #{tag.name}
                                     </span>
@@ -325,7 +405,7 @@ export default function BlogShow({
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
+                                className="w-5 h-5"
                                 fill={isLiked ? "currentColor" : "none"}
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -352,7 +432,7 @@ export default function BlogShow({
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
+                                className="w-5 h-5"
                                 fill={isBookmarked ? "currentColor" : "none"}
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -372,10 +452,14 @@ export default function BlogShow({
                         <div className="flex-1"></div>
 
                         {/* Share Button */}
-                        <button className="btn btn-ghost btn-sm gap-2 text-gray-600 hover:text-blue-900 hover:bg-blue-50">
+                        <button
+                            type="button"
+                            onClick={handleShareModalToggle}
+                            className="gap-2 text-gray-600 btn btn-ghost btn-sm hover:text-blue-900 hover:bg-blue-50"
+                        >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
+                                className="w-5 h-5"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -395,7 +479,7 @@ export default function BlogShow({
 
             {/* Comments Section */}
             <div className="mt-8">
-                <h2 className="text-xl font-bold mb-4">Comments</h2>
+                <h2 className="mb-4 text-xl font-bold">Comments</h2>
                 {blog.comments && blog.comments.length > 0 ? (
                     blog.comments.map((comment) => (
                         <Comment
@@ -413,10 +497,10 @@ export default function BlogShow({
             {showDeleteModal && (
                 <div className="modal modal-open">
                     <div className="modal-box">
-                        <h3 className="font-bold text-lg mb-4">
+                        <h3 className="mb-4 text-lg font-bold">
                             Delete Blog Post
                         </h3>
-                        <p className="text-gray-600 mb-6">
+                        <p className="mb-6 text-gray-600">
                             Are you sure you want to delete "
                             <span className="font-semibold">{blog.title}</span>
                             "? This action cannot be undone and all associated
@@ -425,13 +509,13 @@ export default function BlogShow({
                         <div className="modal-action">
                             <button
                                 onClick={() => setShowDeleteModal(false)}
-                                className="btn btn-ghost px-2"
+                                className="px-2 btn btn-ghost"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={confirmDelete}
-                                className="btn bg-red-600 text-white px-2 hover:bg-red-700 border-none"
+                                className="px-2 text-white bg-red-600 border-none btn hover:bg-red-700"
                             >
                                 Delete
                             </button>
@@ -441,6 +525,72 @@ export default function BlogShow({
                         className="modal-backdrop"
                         onClick={() => setShowDeleteModal(false)}
                     ></div>
+                </div>
+            )}
+
+            {/* Share Modal */}
+            {showShareModal && (
+                <div className="modal modal-open">
+                    <div className="max-w-lg modal-box">
+                        <h3 className="text-lg font-semibold">Bagikan Artikel</h3>
+                        <p className="mt-2 text-sm text-gray-500">
+                            Salin tautan atau bagikan langsung ke platform favoritmu.
+                        </p>
+
+                        <div className="flex items-center gap-2 mt-4">
+                            <input
+                                type="text"
+                                className="w-full input input-bordered"
+                                value={shareUrl}
+                                readOnly
+                            />
+                            <button
+                                type="button"
+                                onClick={handleCopyShareUrl}
+                                className="p-2 btn btn-primary"
+                            >
+                                {isCopied ? "Tersalin" : "Salin"}
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mt-6">
+                            <FacebookShareButton url={shareUrl} quote={blog.title}>
+                                <div className="flex items-center w-full gap-2 btn btn-outline">
+                                    <FacebookIcon size={32} round />
+                                    Facebook
+                                </div>
+                            </FacebookShareButton>
+                            <TwitterShareButton url={shareUrl} title={blog.title}>
+                                <div className="flex items-center w-full gap-2 btn btn-outline">
+                                    <TwitterIcon size={32} round />
+                                    Twitter
+                                </div>
+                            </TwitterShareButton>
+                            <WhatsappShareButton url={shareUrl} title={blog.title} separator=" - ">
+                                <div className="flex items-center w-full gap-2 btn btn-outline">
+                                    <WhatsappIcon size={32} round />
+                                    WhatsApp
+                                </div>
+                            </WhatsappShareButton>
+                            <LinkedinShareButton url={shareUrl} title={blog.title}>
+                                <div className="flex items-center w-full gap-2 btn btn-outline">
+                                    <LinkedinIcon size={32} round />
+                                    LinkedIn
+                                </div>
+                            </LinkedinShareButton>
+                        </div>
+
+                        <div className="modal-action">
+                            <button
+                                type="button"
+                                onClick={handleShareModalToggle}
+                                className="btn btn-ghost"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                    <div className="modal-backdrop" onClick={handleShareModalToggle}></div>
                 </div>
             )}
         </div>

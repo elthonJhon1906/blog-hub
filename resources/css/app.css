@@ -205,3 +205,43 @@
 .blog-content-display.ql-editor {
     padding: 0 !important;
 }
+
+/* Hide default clear (X) icons on search inputs */
+.search-input {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.search-input::-webkit-search-decoration,
+.search-input::-webkit-search-cancel-button,
+.search-input::-webkit-search-results-button,
+.search-input::-webkit-search-results-decoration {
+    display: none;
+}
+
+.search-input::-ms-clear,
+.search-input::-ms-reveal {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+@keyframes navbarTicker {
+    0% {
+        transform: translateX(100%);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+.navbar-marquee {
+    display: inline-block;
+    min-width: 100%;
+    animation: navbarTicker 18s linear infinite;
+    will-change: transform;
+}
+
+.navbar-marquee:hover {
+    animation-play-state: paused;
+}
